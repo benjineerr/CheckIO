@@ -9,6 +9,8 @@ A simple RFID-based attendance system for schools with real-time tracking, web d
 - **Web Interface**: Student and teacher dashboards
 - **Real-time**: MQTT communication between nodes
 
+![Flowchart](./Flowchart.svg)
+
 ## Complete Setup
 
 ### Hardware Used
