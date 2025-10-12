@@ -1,5 +1,5 @@
-#!/bin/bash
 # Door-Pi/install.sh
+#!/bin/bash
 echo "🚪 Installing Door-Pi Node..."
 
 # Korrekte Repository URL
@@ -48,7 +48,39 @@ read -p "Enter MQTT Broker IP (or press Enter for $LOCAL_IP): " MQTT_IP
 MQTT_IP=${MQTT_IP:-$LOCAL_IP}
 
 echo "📝 Updating configuration with MQTT broker: $MQTT_IP"
-sed -i "s/broker = .*/broker = $MQTT_IP/" config/main.conf
+
+# Debug: Show current config before change
+echo "Current config before update:"
+grep "broker" config/main.conf
+
+# Fix: Use more specific sed pattern and escape the replacement
+sed -i "s/^broker = .*/broker = ${MQTT_IP}/" config/main.conf
+
+# Debug: Show config after change
+echo "Config after update:"
+grep "broker" config/main.conf
+
+# Verify the change worked
+if grep -q "broker = ${MQTT_IP}" config/main.conf; then
+    echo "✅ MQTT broker IP successfully updated to: $MQTT_IP"
+else
+    echo "❌ Failed to update MQTT broker IP, setting manually..."
+    # Fallback: Complete config replacement
+    cat > config/main.conf << EOF
+[serial]
+port = /dev/ttyACM0
+baud = 115200
+
+[mqtt]
+broker = ${MQTT_IP}
+port = 1883
+topic = rfid/scans
+
+[device]
+id = door_node_001
+EOF
+    echo "✅ Config manually set with broker: $MQTT_IP"
+fi
 
 # Start container
 echo "🚀 Starting Door-Pi container..."
@@ -57,11 +89,13 @@ docker compose up --build -d
 # Show status
 echo "📊 Container status:"
 docker compose ps
+echo ""
+echo "📋 Recent logs:"
 docker compose logs --tail=10 door-node
 
 echo ""
 echo "🎉 Door-Pi installation complete!"
-echo "📋 Management commands:"
+echo "📋 Management commands (run from $(pwd)):"
 echo "   View logs:    docker compose logs -f door-node"
 echo "   Stop:         docker compose down"
 echo "   Restart:      docker compose restart"
