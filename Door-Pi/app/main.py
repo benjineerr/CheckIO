@@ -6,140 +6,151 @@ from datetime import datetime
 import serial
 import paho.mqtt.client as mqtt
 import configparser
+import logging
 
-# Load configuration
-config = configparser.ConfigParser()
-config_file = '/app/config/main.conf'
+# Logging Setup
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-# Try to read config file
-try:
+# Robustere Config-Behandlung
+def load_config():
+    config = configparser.ConfigParser()
+    config_file = '/app/config/main.conf'  # Variable hier definieren
+    
+    # Fallback-Konfiguration
+    config.read_dict({
+        'serial': {
+            'port': '/dev/ttyACM0',
+            'baud': '115200'
+        },
+        'mqtt': {
+            'broker': '192.168.1.114',
+            'port': '1883',
+            'topic': 'rfid/scans'
+        },
+        'device': {
+            'id': 'door_node_001'
+        }
+    })
+    
+    # Config-Datei laden falls vorhanden
     if os.path.exists(config_file):
-        config.read(config_file)
-        print(f"[CONFIG] Loaded config from {config_file}")
+        try:
+            config.read(config_file)
+            logger.info(f"Config loaded from {config_file}")
+        except Exception as e:
+            logger.warning(f"Error reading config file: {e}, using defaults")
     else:
-        print(f"[CONFIG] Config file {config_file} not found, using environment variables and defaults")
-except Exception as e:
-    print(f"[CONFIG] Error reading config file: {e}, using environment variables and defaults")
+        logger.info("Config file not found, using defaults")
+    
+    return config
 
-# Helper function to safely get config values
-def get_config_value(section, key, fallback, env_var=None):
-    # Priority: Environment Variable > Config File > Fallback
-    if env_var and os.getenv(env_var):
-        return os.getenv(env_var)
-    try:
-        if config.has_section(section) and config.has_option(section, key):
-            return config.get(section, key)
-    except:
-        pass
-    return fallback
+# Config laden
+config = load_config()
 
-# Configuration with priority: ENV > Config File > Defaults
-SERIAL_PORT = get_config_value('serial', 'port', '/dev/ttyUSB0', 'SERIAL_PORT')
-SERIAL_BAUD = int(get_config_value('serial', 'baud', '115200', 'SERIAL_BAUD'))
-
-MQTT_BROKER = get_config_value('mqtt', 'broker', 'mqtt', 'MQTT_BROKER')
-MQTT_PORT = int(get_config_value('mqtt', 'port', '1883', 'MQTT_PORT'))
-MQTT_TOPIC = get_config_value('mqtt', 'topic', 'rfid/scans', 'MQTT_TOPIC')
-
-DEVICE_ID = get_config_value('device', 'id', 'door_node_01', 'DEVICE_ID')
+# Konfiguration auslesen
+SERIAL_PORT = config.get('serial', 'port')
+SERIAL_BAUD = config.getint('serial', 'baud')
+MQTT_BROKER = config.get('mqtt', 'broker')
+MQTT_PORT = config.getint('mqtt', 'port')
+MQTT_TOPIC = config.get('mqtt', 'topic')
+DEVICE_ID = config.get('device', 'id')
 
 print(f"[INFO] Door Node {DEVICE_ID} starting...")
 print(f"[INFO] Serial: {SERIAL_PORT}@{SERIAL_BAUD}")
 print(f"[INFO] MQTT: {MQTT_BROKER}:{MQTT_PORT} -> {MQTT_TOPIC}")
 
-# Debug: Show configuration source
-print("[DEBUG] Configuration loaded from:")
-if os.path.exists(config_file):
-    print(f"[DEBUG] - Config file: {config_file}")
-else:
-    print("[DEBUG] - Config file: NOT FOUND")
-print("[DEBUG] - Environment variables and defaults")
+# MQTT Client Setup
+client = mqtt.Client()
 
-# MQTT callbacks
-def on_connect(client, userdata, flags, reason_code, properties=None):
-    if reason_code == 0:
-        print(f"[MQTT] Connected to broker {MQTT_BROKER}:{MQTT_PORT}")
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print(f"[INFO] Connected to MQTT broker {MQTT_BROKER}")
     else:
-        print(f"[MQTT] Connection failed (code {reason_code})")
+        print(f"[ERROR] Failed to connect to MQTT broker, return code {rc}")
 
-def on_disconnect(client, userdata, rc, properties=None):
-    print("[MQTT] Disconnected - retrying...")
+def on_disconnect(client, userdata, rc):
+    print(f"[WARNING] Disconnected from MQTT broker, return code {rc}")
 
-# Setup MQTT client
-mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=DEVICE_ID)
-mqtt_client.on_connect = on_connect
-mqtt_client.on_disconnect = on_disconnect
+def on_publish(client, userdata, mid):
+    print(f"[DEBUG] Message {mid} published")
 
-# Connect to MQTT broker with retry
-def connect_mqtt():
-    while True:
-        try:
-            mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
-            mqtt_client.loop_start()
-            break
-        except Exception as e:
-            print(f"[MQTT] Waiting for broker... ({e})")
-            time.sleep(5)
+client.on_connect = on_connect
+client.on_disconnect = on_disconnect
+client.on_publish = on_publish
 
-# Connect to serial port with retry
-def connect_serial():
-    while True:
-        try:
-            ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=1)
-            print(f"[SERIAL] Connected to {SERIAL_PORT}")
-            return ser
-        except Exception as e:
-            print(f"[SERIAL] Waiting for port... ({e})")
-            time.sleep(5)
+# Serial Connection Setup
+def setup_serial():
+    try:
+        ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=1)
+        print(f"[INFO] Serial connection established on {SERIAL_PORT}")
+        return ser
+    except serial.SerialException as e:
+        print(f"[ERROR] Failed to connect to serial port {SERIAL_PORT}: {e}")
+        return None
 
-# Main function
+# Main Loop
 def main():
-    connect_mqtt()
-    ser = connect_serial()
+    # MQTT verbinden
+    try:
+        client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        client.loop_start()
+    except Exception as e:
+        print(f"[ERROR] MQTT connection failed: {e}")
+        return
     
-    print("[INFO] Door node ready - listening for RFID scans...")
+    # Serial verbinden
+    ser = setup_serial()
+    if not ser:
+        print("[ERROR] Serial connection failed, exiting")
+        return
     
-    while True:
-        try:
-            # Read line from serial
-            line = ser.readline().decode('utf-8').strip()
-            
-            if not line:
-                continue
-                
-            # Parse JSON
-            try:
-                data = json.loads(line)
-            except json.JSONDecodeError:
-                print(f"[WARN] Invalid JSON: {line}")
-                continue
-            
-            # Skip status messages
-            if data.get('status') == 'ready':
-                print(f"[INFO] Arduino ready: {data}")
-                continue
-            
-            # Add timestamp and device info
-            data['timestamp'] = datetime.now().isoformat()
-            data['node_id'] = DEVICE_ID
-            
-            # Send to MQTT
-            payload = json.dumps(data)
-            mqtt_client.publish(MQTT_TOPIC, payload)
-            
-            print(f"[DATA] Sent: {payload}")
-            
-        except KeyboardInterrupt:
-            print("\n[INFO] Shutting down...")
-            break
-        except Exception as e:
-            print(f"[ERROR] {e}")
-            time.sleep(1)
+    print(f"[INFO] {DEVICE_ID} ready - listening for RFID scans...")
     
-    # Cleanup
-    ser.close()
-    mqtt_client.loop_stop()
-    mqtt_client.disconnect()
+    try:
+        while True:
+            if ser.in_waiting > 0:
+                try:
+                    # RFID Data lesen
+                    rfid_data = ser.readline().decode('utf-8').strip()
+                    
+                    if rfid_data:
+                        timestamp = datetime.now().isoformat()
+                        
+                        # MQTT Message erstellen
+                        message = {
+                            "device_id": DEVICE_ID,
+                            "rfid_uid": rfid_data,
+                            "timestamp": timestamp,
+                            "location": "door"
+                        }
+                        
+                        # Als JSON senden
+                        json_message = json.dumps(message)
+                        result = client.publish(MQTT_TOPIC, json_message)
+                        
+                        print(f"[INFO] RFID scan: {rfid_data} -> sent to {MQTT_TOPIC}")
+                        
+                except UnicodeDecodeError as e:
+                    print(f"[ERROR] Failed to decode serial data: {e}")
+                except Exception as e:
+                    print(f"[ERROR] Error processing RFID data: {e}")
+            
+            time.sleep(0.1)  # Kurze Pause
+            
+    except KeyboardInterrupt:
+        print("\n[INFO] Shutting down...")
+    except Exception as e:
+        print(f"[ERROR] Unexpected error: {e}")
+    finally:
+        if ser:
+            ser.close()
+        client.loop_stop()
+        client.disconnect()
+        print("[INFO] Cleanup completed")
 
 if __name__ == "__main__":
     main()

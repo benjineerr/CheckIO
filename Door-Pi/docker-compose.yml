@@ -3,27 +3,22 @@ services:
     build: ./app
     container_name: door_node
     restart: unless-stopped
-    # Environment variables can optionally override config file values
-    # environment:
-    #   MQTT_BROKER: "192.168.1.100"  # Override config file if needed
-    #   SERIAL_PORT: "/dev/ttyACM0"    # Override if different USB port needed
+    
+    # Privileged Mode für Hardware-Zugriff (einfachste Lösung)
+    privileged: true
     
     volumes:
       - ./config:/app/config:ro
       
     devices:
-      - "/dev/ttyUSB0:/dev/ttyUSB0"  # Arduino USB connection
+      - "/dev/ttyACM0:/dev/ttyACM0"
       
-    # Alternative for different USB ports:
-    # devices:
-    #   - "/dev/ttyACM0:/dev/ttyACM0"
-    
-    privileged: false  # Keep minimal privileges
-    
-    # Health check
-    healthcheck:
-      test: ["CMD", "python", "-c", "import json; print(json.dumps({'status': 'healthy'}))"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    networks:
+      - rfid_network
+      
+    environment:
+      - PYTHONUNBUFFERED=1
+      
+networks:
+  rfid_network:
+    driver: bridge

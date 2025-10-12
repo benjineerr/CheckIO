@@ -1,31 +1,23 @@
-# Super lightweight Door Node
+# Door-Pi/app/Dockerfile - Einfache Version
 FROM python:3.11-alpine
 
-# Install system dependencies for serial communication
-RUN apk add --no-cache gcc musl-dev
+# Install system dependencies
+RUN apk add --no-cache gcc musl-dev linux-headers
 
-# Set working directory
 WORKDIR /app
 
-# Copy requirements and install Python packages
+# Copy and install requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
 COPY main.py .
 
-# Create config directory and set permissions
-RUN mkdir -p /app/config
-
-# Run as non-root user for security
-RUN adduser -D -s /bin/sh appuser && \
-    chown -R appuser:appuser /app
-
-USER appuser
+# Create directories
+RUN mkdir -p /app/config /app/logs
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import json; print(json.dumps({'status': 'healthy'}))" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)" || exit 1
 
-# Start the application
-CMD ["python", "main.py"]
+CMD ["python", "-u", "main.py"]
