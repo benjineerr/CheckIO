@@ -1,15 +1,16 @@
 #!/bin/bash
 # Door-Pi/install.sh
-
 echo "🚪 Installing Door-Pi Node..."
 
-# Check if git is installed
+# Korrekte Repository URL
+REPO_URL="https://github.com/benjineerr/CheckIO.git"
+
+# Check dependencies
 if ! command -v git &> /dev/null; then
     echo "Installing git..."
     sudo apt update && sudo apt install -y git
 fi
 
-# Check if docker is installed
 if ! command -v docker &> /dev/null; then
     echo "Installing Docker..."
     curl -fsSL https://get.docker.com | sh
@@ -20,7 +21,8 @@ fi
 
 # Clone repository
 echo "📥 Cloning repository..."
-git clone https://github.com/IhrUsername/CheckIO.git door-pi-setup
+rm -rf door-pi-setup
+git clone $REPO_URL door-pi-setup
 cd door-pi-setup/Door-Pi
 
 # Check for serial device
