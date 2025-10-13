@@ -44,12 +44,24 @@ def teacher_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_type' not in session or session['user_type'] != 'teacher' or session.get('role') != 'admin':
+            flash('Zugriff verweigert. Admin-Berechtigung erforderlich.')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Routes
 @app.route('/')
 def index():
     if 'user_id' in session:
         if session['user_type'] == 'teacher':
-            return redirect(url_for('teacher_dashboard'))
+            if session.get('role') == 'admin':
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('teacher_dashboard'))
         else:
             return redirect(url_for('student_dashboard'))
     return redirect(url_for('login'))
@@ -68,17 +80,23 @@ def login():
         try:
             cursor = conn.cursor(dictionary=True)
             
-            # Check teacher login
-            if username == 'teacher' and password == '@itech':
-                session['user_id'] = 'teacher'
+            # Check teacher login (including new teacher table)
+            cursor.execute("SELECT * FROM teachers WHERE username = %s AND password = %s AND active = TRUE", 
+                          (username, hash_password(password)))
+            teacher = cursor.fetchone()
+            
+            if teacher:
+                session['user_id'] = teacher['id']
                 session['user_type'] = 'teacher'
-                session['username'] = 'teacher'
+                session['username'] = teacher['username']
+                session['teacher_name'] = f"{teacher['firstname']} {teacher['lastname']}"
+                session['role'] = teacher['role']
                 cursor.close()
                 conn.close()
-                return redirect(url_for('teacher_dashboard'))
+                return redirect(url_for('admin_dashboard' if teacher['role'] == 'admin' else 'teacher_dashboard'))
             
             # Check student login
-            cursor.execute("SELECT * FROM students WHERE username = %s AND password = %s", 
+            cursor.execute("SELECT * FROM students WHERE username = %s AND password = %s AND active = TRUE", 
                           (username, hash_password(password)))
             student = cursor.fetchone()
             
@@ -368,6 +386,285 @@ def rfid_scan():
     except Exception as e:
         print(f"RFID scan error: {e}")
         return jsonify({'success': False, 'message': 'Ein Fehler ist aufgetreten'}), 500
+
+# ADMIN ROUTES
+@app.route('/admin_dashboard')
+@admin_required
+def admin_dashboard():
+    conn = get_db_connection()
+    if not conn:
+        flash('Datenbankverbindung fehlgeschlagen')
+        return redirect(url_for('login'))
+        
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get statistics
+        cursor.execute("SELECT COUNT(*) as total FROM students WHERE active = TRUE")
+        total_students = cursor.fetchone()['total']
+        
+        cursor.execute("SELECT COUNT(*) as total FROM teachers WHERE active = TRUE")
+        total_teachers = cursor.fetchone()['total']
+        
+        cursor.execute("SELECT COUNT(*) as total FROM rfid_devices WHERE status = 'active'")
+        active_devices = cursor.fetchone()['total']
+        
+        cursor.execute("SELECT COUNT(*) as total FROM rfid_scans WHERE DATE(timestamp) = CURDATE()")
+        scans_today = cursor.fetchone()['total']
+        
+        cursor.close()
+        conn.close()
+        
+        stats = {
+            'total_students': total_students,
+            'total_teachers': total_teachers,
+            'active_devices': active_devices,
+            'scans_today': scans_today
+        }
+        
+        return render_template('admin_dashboard.html', stats=stats)
+        
+    except Exception as e:
+        print(f"Admin dashboard error: {e}")
+        flash('Ein Fehler ist aufgetreten')
+        if conn:
+            conn.close()
+        return redirect(url_for('login'))
+
+# STUDENT MANAGEMENT APIs
+@app.route('/api/admin/students')
+@admin_required
+def get_all_students():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Datenbankverbindung fehlgeschlagen'}), 500
+        
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT s.*, rd.device_name, rd.device_type, rd.status as device_status
+            FROM students s
+            LEFT JOIN rfid_devices rd ON s.rfid_tag = rd.rfid_tag
+            ORDER BY s.lastname, s.firstname
+        """)
+        students = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(students)
+    except Exception as e:
+        print(f"Get students error: {e}")
+        return jsonify({'error': 'Ein Fehler ist aufgetreten'}), 500
+
+@app.route('/api/admin/students', methods=['POST'])
+@admin_required
+def create_student():
+    try:
+        data = request.json
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Datenbankverbindung fehlgeschlagen'}), 500
+            
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO students (username, firstname, lastname, email, class_name, password) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (
+            data['username'], data['firstname'], data['lastname'], 
+            data['email'], data['class_name'], hash_password(data['password'])
+        ))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Schüler erfolgreich erstellt'})
+    except Exception as e:
+        print(f"Create student error: {e}")
+        return jsonify({'error': 'Ein Fehler ist aufgetreten'}), 500
+
+@app.route('/api/admin/students/<int:student_id>', methods=['PUT'])
+@admin_required
+def update_student(student_id):
+    try:
+        data = request.json
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Datenbankverbindung fehlgeschlagen'}), 500
+            
+        cursor = conn.cursor()
+        
+        # Build update query dynamically
+        update_fields = []
+        update_values = []
+        
+        for field in ['username', 'firstname', 'lastname', 'email', 'class_name', 'active']:
+            if field in data:
+                update_fields.append(f"{field} = %s")
+                update_values.append(data[field])
+        
+        if 'password' in data and data['password']:
+            update_fields.append("password = %s")
+            update_values.append(hash_password(data['password']))
+            
+        update_values.append(student_id)
+        
+        cursor.execute(f"""
+            UPDATE students SET {', '.join(update_fields)} WHERE id = %s
+        """, update_values)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Schüler erfolgreich aktualisiert'})
+    except Exception as e:
+        print(f"Update student error: {e}")
+        return jsonify({'error': 'Ein Fehler ist aufgetreten'}), 500
+
+@app.route('/api/admin/students/<int:student_id>', methods=['DELETE'])
+@admin_required
+def delete_student(student_id):
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Datenbankverbindung fehlgeschlagen'}), 500
+            
+        cursor = conn.cursor()
+        # Soft delete
+        cursor.execute("UPDATE students SET active = FALSE WHERE id = %s", (student_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Schüler erfolgreich deaktiviert'})
+    except Exception as e:
+        print(f"Delete student error: {e}")
+        return jsonify({'error': 'Ein Fehler ist aufgetreten'}), 500
+
+# TEACHER MANAGEMENT APIs
+@app.route('/api/admin/teachers')
+@admin_required
+def get_all_teachers():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Datenbankverbindung fehlgeschlagen'}), 500
+        
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM teachers ORDER BY lastname, firstname")
+        teachers = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(teachers)
+    except Exception as e:
+        print(f"Get teachers error: {e}")
+        return jsonify({'error': 'Ein Fehler ist aufgetreten'}), 500
+
+@app.route('/api/admin/teachers', methods=['POST'])
+@admin_required
+def create_teacher():
+    try:
+        data = request.json
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Datenbankverbindung fehlgeschlagen'}), 500
+            
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO teachers (username, firstname, lastname, email, password, role) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (
+            data['username'], data['firstname'], data['lastname'], 
+            data['email'], hash_password(data['password']), data.get('role', 'teacher')
+        ))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Lehrer erfolgreich erstellt'})
+    except Exception as e:
+        print(f"Create teacher error: {e}")
+        return jsonify({'error': 'Ein Fehler ist aufgetreten'}), 500
+
+# RFID DEVICE MANAGEMENT APIs
+@app.route('/api/admin/devices')
+@admin_required
+def get_all_devices():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Datenbankverbindung fehlgeschlagen'}), 500
+        
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT rd.*, s.firstname, s.lastname, s.username
+            FROM rfid_devices rd
+            LEFT JOIN students s ON rd.assigned_to_student = s.id
+            ORDER BY rd.rfid_tag
+        """)
+        devices = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(devices)
+    except Exception as e:
+        print(f"Get devices error: {e}")
+        return jsonify({'error': 'Ein Fehler ist aufgetreten'}), 500
+
+@app.route('/api/admin/devices', methods=['POST'])
+@admin_required
+def create_device():
+    try:
+        data = request.json
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Datenbankverbindung fehlgeschlagen'}), 500
+            
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO rfid_devices (rfid_tag, device_name, device_type, status) 
+            VALUES (%s, %s, %s, %s)
+        """, (
+            data['rfid_tag'], data['device_name'], 
+            data.get('device_type', 'card'), data.get('status', 'active')
+        ))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'RFID-Gerät erfolgreich erstellt'})
+    except Exception as e:
+        print(f"Create device error: {e}")
+        return jsonify({'error': 'Ein Fehler ist aufgetreten'}), 500
+
+@app.route('/api/admin/devices/<int:device_id>/assign', methods=['POST'])
+@admin_required
+def assign_device(device_id):
+    try:
+        data = request.json
+        student_id = data.get('student_id')
+        
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Datenbankverbindung fehlgeschlagen'}), 500
+            
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get device info
+        cursor.execute("SELECT * FROM rfid_devices WHERE id = %s", (device_id,))
+        device = cursor.fetchone()
+        
+        if not device:
+            return jsonify({'error': 'Gerät nicht gefunden'}), 404
+            
+        # Update device assignment
+        cursor.execute("UPDATE rfid_devices SET assigned_to_student = %s WHERE id = %s", 
+                      (student_id, device_id))
+        
+        # Update student's RFID tag
+        if student_id:
+            cursor.execute("UPDATE students SET rfid_tag = %s WHERE id = %s", 
+                          (device['rfid_tag'], student_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Gerät erfolgreich zugewiesen'})
+    except Exception as e:
+        print(f"Assign device error: {e}")
+        return jsonify({'error': 'Ein Fehler ist aufgetreten'}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)

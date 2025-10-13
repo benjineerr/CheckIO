@@ -1,0 +1,607 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Admin Dashboard</h2>
+    <div>
+        <span class="badge bg-primary">Administrator</span>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Schüler</h6>
+                        <h3 class="mb-0">{{ stats.total_students }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Lehrer</h6>
+                        <h3 class="mb-0">{{ stats.total_teachers }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Aktive Geräte</h6>
+                        <h3 class="mb-0">{{ stats.active_devices }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-id-card fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Scans Heute</h6>
+                        <h3 class="mb-0">{{ stats.scans_today }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-barcode fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<ul class="nav nav-tabs" id="adminTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab">
+            <i class="fas fa-users"></i> Schüler verwalten
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="teachers-tab" data-bs-toggle="tab" data-bs-target="#teachers" type="button" role="tab">
+            <i class="fas fa-chalkboard-teacher"></i> Lehrer verwalten
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="devices-tab" data-bs-toggle="tab" data-bs-target="#devices" type="button" role="tab">
+            <i class="fas fa-id-card"></i> RFID-Geräte
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="adminTabsContent">
+    <!-- Students Tab -->
+    <div class="tab-pane fade show active" id="students" role="tabpanel">
+        <div class="card mt-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Schüler verwalten</h5>
+                <button class="btn btn-primary btn-sm" onclick="showAddStudentModal()">
+                    <i class="fas fa-plus"></i> Neuer Schüler
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="studentsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Benutzername</th>
+                                <th>Email</th>
+                                <th>Klasse</th>
+                                <th>RFID-Gerät</th>
+                                <th>Status</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teachers Tab -->
+    <div class="tab-pane fade" id="teachers" role="tabpanel">
+        <div class="card mt-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Lehrer verwalten</h5>
+                <button class="btn btn-primary btn-sm" onclick="showAddTeacherModal()">
+                    <i class="fas fa-plus"></i> Neuer Lehrer
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="teachersTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Benutzername</th>
+                                <th>Email</th>
+                                <th>Rolle</th>
+                                <th>Status</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Devices Tab -->
+    <div class="tab-pane fade" id="devices" role="tabpanel">
+        <div class="card mt-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">RFID-Geräte verwalten</h5>
+                <button class="btn btn-primary btn-sm" onclick="showAddDeviceModal()">
+                    <i class="fas fa-plus"></i> Neues Gerät
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="devicesTable">
+                        <thead>
+                            <tr>
+                                <th>RFID Tag</th>
+                                <th>Gerätename</th>
+                                <th>Typ</th>
+                                <th>Status</th>
+                                <th>Zugewiesen an</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addStudentForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Neuen Schüler hinzufügen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Benutzername</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vorname</label>
+                        <input type="text" class="form-control" name="firstname" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nachname</label>
+                        <input type="text" class="form-control" name="lastname" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Klasse</label>
+                        <select class="form-select" name="class_name" required>
+                            <option value="">Bitte wählen...</option>
+                            <option value="IT-1A">IT-1A</option>
+                            <option value="IT-1B">IT-1B</option>
+                            <option value="IT-2A">IT-2A</option>
+                            <option value="IT-2B">IT-2B</option>
+                            <option value="IT-3A">IT-3A</option>
+                            <option value="IT-3B">IT-3B</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Passwort</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Teacher Modal -->
+<div class="modal fade" id="addTeacherModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addTeacherForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Neuen Lehrer hinzufügen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Benutzername</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vorname</label>
+                        <input type="text" class="form-control" name="firstname" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nachname</label>
+                        <input type="text" class="form-control" name="lastname" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rolle</label>
+                        <select class="form-select" name="role" required>
+                            <option value="teacher">Lehrer</option>
+                            <option value="admin">Administrator</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Passwort</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Device Modal -->
+<div class="modal fade" id="addDeviceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addDeviceForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Neues RFID-Gerät hinzufügen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">RFID Tag</label>
+                        <input type="text" class="form-control" name="rfid_tag" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Gerätename</label>
+                        <input type="text" class="form-control" name="device_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Gerätetyp</label>
+                        <select class="form-select" name="device_type" required>
+                            <option value="card">Karte</option>
+                            <option value="fob">Schlüsselanhänger</option>
+                            <option value="wristband">Armband</option>
+                            <option value="other">Sonstiges</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status" required>
+                            <option value="active">Aktiv</option>
+                            <option value="inactive">Inaktiv</option>
+                            <option value="lost">Verloren</option>
+                            <option value="broken">Defekt</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<script>
+let students = [];
+let teachers = [];
+let devices = [];
+
+// Load all data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadStudents();
+    loadTeachers();
+    loadDevices();
+});
+
+// Students Management
+async function loadStudents() {
+    try {
+        const response = await fetch('/api/admin/students');
+        students = await response.json();
+        displayStudents();
+    } catch (error) {
+        console.error('Error loading students:', error);
+    }
+}
+
+function displayStudents() {
+    const tbody = document.querySelector('#studentsTable tbody');
+    tbody.innerHTML = '';
+    
+    students.forEach(student => {
+        const row = tbody.insertRow();
+        const deviceInfo = student.device_name ? 
+            `${student.device_name} (${student.device_type})` : 
+            '<span class="text-muted">Kein Gerät</span>';
+        const statusBadge = student.active ? 
+            '<span class="badge bg-success">Aktiv</span>' : 
+            '<span class="badge bg-danger">Inaktiv</span>';
+            
+        row.innerHTML = `
+            <td>${student.firstname} ${student.lastname}</td>
+            <td>${student.username}</td>
+            <td>${student.email}</td>
+            <td>${student.class_name}</td>
+            <td>${deviceInfo}</td>
+            <td>${statusBadge}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editStudent(${student.id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent(${student.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+    });
+}
+
+function showAddStudentModal() {
+    document.getElementById('addStudentForm').reset();
+    new bootstrap.Modal(document.getElementById('addStudentModal')).show();
+}
+
+document.getElementById('addStudentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('/api/admin/students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            bootstrap.Modal.getInstance(document.getElementById('addStudentModal')).hide();
+            loadStudents();
+            showAlert('Schüler erfolgreich erstellt!', 'success');
+        } else {
+            showAlert(result.error || 'Fehler beim Erstellen', 'danger');
+        }
+    } catch (error) {
+        showAlert('Ein Fehler ist aufgetreten', 'danger');
+    }
+});
+
+// Teachers Management
+async function loadTeachers() {
+    try {
+        const response = await fetch('/api/admin/teachers');
+        teachers = await response.json();
+        displayTeachers();
+    } catch (error) {
+        console.error('Error loading teachers:', error);
+    }
+}
+
+function displayTeachers() {
+    const tbody = document.querySelector('#teachersTable tbody');
+    tbody.innerHTML = '';
+    
+    teachers.forEach(teacher => {
+        const row = tbody.insertRow();
+        const roleBadge = teacher.role === 'admin' ? 
+            '<span class="badge bg-danger">Admin</span>' : 
+            '<span class="badge bg-primary">Lehrer</span>';
+        const statusBadge = teacher.active ? 
+            '<span class="badge bg-success">Aktiv</span>' : 
+            '<span class="badge bg-danger">Inaktiv</span>';
+            
+        row.innerHTML = `
+            <td>${teacher.firstname} ${teacher.lastname}</td>
+            <td>${teacher.username}</td>
+            <td>${teacher.email}</td>
+            <td>${roleBadge}</td>
+            <td>${statusBadge}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editTeacher(${teacher.id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+            </td>
+        `;
+    });
+}
+
+function showAddTeacherModal() {
+    document.getElementById('addTeacherForm').reset();
+    new bootstrap.Modal(document.getElementById('addTeacherModal')).show();
+}
+
+document.getElementById('addTeacherForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('/api/admin/teachers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            bootstrap.Modal.getInstance(document.getElementById('addTeacherModal')).hide();
+            loadTeachers();
+            showAlert('Lehrer erfolgreich erstellt!', 'success');
+        } else {
+            showAlert(result.error || 'Fehler beim Erstellen', 'danger');
+        }
+    } catch (error) {
+        showAlert('Ein Fehler ist aufgetreten', 'danger');
+    }
+});
+
+// Devices Management
+async function loadDevices() {
+    try {
+        const response = await fetch('/api/admin/devices');
+        devices = await response.json();
+        displayDevices();
+    } catch (error) {
+        console.error('Error loading devices:', error);
+    }
+}
+
+function displayDevices() {
+    const tbody = document.querySelector('#devicesTable tbody');
+    tbody.innerHTML = '';
+    
+    devices.forEach(device => {
+        const row = tbody.insertRow();
+        const statusBadge = {
+            'active': '<span class="badge bg-success">Aktiv</span>',
+            'inactive': '<span class="badge bg-secondary">Inaktiv</span>',
+            'lost': '<span class="badge bg-warning">Verloren</span>',
+            'broken': '<span class="badge bg-danger">Defekt</span>'
+        }[device.status];
+        
+        const assignedTo = device.firstname ? 
+            `${device.firstname} ${device.lastname} (${device.username})` : 
+            '<span class="text-muted">Nicht zugewiesen</span>';
+            
+        row.innerHTML = `
+            <td>${device.rfid_tag}</td>
+            <td>${device.device_name}</td>
+            <td>${device.device_type}</td>
+            <td>${statusBadge}</td>
+            <td>${assignedTo}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-info" onclick="assignDevice(${device.id})">
+                    <i class="fas fa-user-plus"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-primary" onclick="editDevice(${device.id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+            </td>
+        `;
+    });
+}
+
+function showAddDeviceModal() {
+    document.getElementById('addDeviceForm').reset();
+    new bootstrap.Modal(document.getElementById('addDeviceModal')).show();
+}
+
+document.getElementById('addDeviceForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('/api/admin/devices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            bootstrap.Modal.getInstance(document.getElementById('addDeviceModal')).hide();
+            loadDevices();
+            showAlert('RFID-Gerät erfolgreich erstellt!', 'success');
+        } else {
+            showAlert(result.error || 'Fehler beim Erstellen', 'danger');
+        }
+    } catch (error) {
+        showAlert('Ein Fehler ist aufgetreten', 'danger');
+    }
+});
+
+// Utility functions
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Placeholder functions for edit/delete operations
+function editStudent(id) {
+    alert('Edit Student ' + id + ' - Feature coming soon!');
+}
+
+function deleteStudent(id) {
+    if (confirm('Sind Sie sicher, dass Sie diesen Schüler deaktivieren möchten?')) {
+        // Implement delete functionality
+        alert('Delete Student ' + id + ' - Feature coming soon!');
+    }
+}
+
+function editTeacher(id) {
+    alert('Edit Teacher ' + id + ' - Feature coming soon!');
+}
+
+function editDevice(id) {
+    alert('Edit Device ' + id + ' - Feature coming soon!');
+}
+
+function assignDevice(id) {
+    alert('Assign Device ' + id + ' - Feature coming soon!');
+}
+</script>
+{% endblock %}
