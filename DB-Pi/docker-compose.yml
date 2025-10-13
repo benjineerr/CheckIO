@@ -17,7 +17,7 @@ services:
       MQTT_TOPIC: rfid/scans
     volumes:
       - ./app:/app
-    command: ["python", "main.py"]
+    command: ["python", "-u", "main.py"]
 
   db:
     image: mysql:8.4
