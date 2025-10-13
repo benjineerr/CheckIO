@@ -19,6 +19,21 @@ services:
       - ./app:/app
     command: ["python", "-u", "main.py"]
 
+  webserver:
+    build: ./webserver
+    container_name: web_interface
+    depends_on:
+      - db
+    environment:
+      MYSQL_HOST: db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: testdb
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./webserver:/app
+
   db:
     image: mysql:8.4
     container_name: mysql_db
@@ -32,6 +47,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d
 
   mqtt:
     image: eclipse-mosquitto:2

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Gerät registrieren{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4>RFID-Gerät registrieren</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Willkommen {{ student.firstname }}!</strong><br>
+                    Ihr Account wurde erfolgreich erstellt. Jetzt müssen Sie Ihr RFID-Gerät registrieren.
+                </div>
+                
+                <div id="registration-steps">
+                    <div class="step" id="step1">
+                        <h5>Schritt 1: Registrierung aktivieren</h5>
+                        <p>Klicken Sie auf den Button unten, um die Geräte-Registrierung zu aktivieren.</p>
+                        <button class="btn btn-primary" onclick="activateRegistration()">
+                            Registrierung aktivieren
+                        </button>
+                    </div>
+                    
+                    <div class="step d-none" id="step2">
+                        <h5>Schritt 2: RFID-Tag scannen</h5>
+                        <div class="alert alert-warning">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                <strong>Bereit für Scan!</strong> Scannen Sie jetzt Ihr RFID-Gerät an der Tür-Station.
+                            </div>
+                        </div>
+                        <p>Gehen Sie zur RFID-Station und scannen Sie Ihr Gerät. Die Registrierung erfolgt automatisch.</p>
+                    </div>
+                    
+                    <div class="step d-none" id="step3">
+                        <h5>✅ Registrierung erfolgreich!</h5>
+                        <div class="alert alert-success">
+                            Ihr RFID-Gerät wurde erfolgreich registriert!
+                        </div>
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-success">
+                            Zum Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let registrationActive = false;
+let checkInterval;
+
+async function activateRegistration() {
+    try {
+        const response = await fetch('/api/register_device', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                student_id: {{ student.id }}
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            document.getElementById('step1').classList.add('d-none');
+            document.getElementById('step2').classList.remove('d-none');
+            
+            // Start checking for successful registration
+            checkInterval = setInterval(checkRegistrationStatus, 2000);
+            registrationActive = true;
+        }
+    } catch (error) {
+        alert('Fehler bei der Aktivierung der Registrierung');
+    }
+}
+
+async function checkRegistrationStatus() {
+    try {
+        const response = await fetch('/api/registration_status/{{ student.id }}');
+        const result = await response.json();
+        
+        if (result.registered) {
+            clearInterval(checkInterval);
+            document.getElementById('step2').classList.add('d-none');
+            document.getElementById('step3').classList.remove('d-none');
+        }
+    } catch (error) {
+        console.log('Checking registration status...');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFID System Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .stats { display: flex; gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: #f5f5f5; padding: 20px; border-radius: 8px; flex: 1; }
+        .table-container { margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        .status-success { color: green; }
+        .status-denied { color: red; }
+        .status-error { color: orange; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RFID System Dashboard</h1>
+        
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <h3>Aktive Benutzer</h3>
+                <div id="total-users">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Scans Heute</h3>
+                <div id="scans-today">-</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <h2>Letzte RFID Scans</h2>
+            <table id="scans-table">
+                <thead>
+                    <tr>
+                        <th>Zeit</th>
+                        <th>RFID Tag</th>
+                        <th>Benutzer</th>
+                        <th>Ort</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="scans-body">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-container">
+            <h2>Benutzer</h2>
+            <table id="users-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>RFID Tag</th>
+                        <th>Zugriffsebene</th>
+                        <th>Aktiv</th>
+                        <th>Erstellt</th>
+                    </tr>
+                </thead>
+                <tbody id="users-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                document.getElementById('total-users').textContent = stats.total_users;
+                document.getElementById('scans-today').textContent = stats.scans_today;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadScans() {
+            try {
+                const response = await fetch('/api/scans');
+                const scans = await response.json();
+                const tbody = document.getElementById('scans-body');
+                tbody.innerHTML = '';
+                
+                scans.forEach(scan => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${new Date(scan.timestamp).toLocaleString('de-DE')}</td>
+                        <td>${scan.rfid_tag}</td>
+                        <td>${scan.user_name || 'Unbekannt'}</td>
+                        <td>${scan.location || '-'}</td>
+                        <td class="status-${scan.status}">${scan.status}</td>
+                    `;
+                });
+            } catch (error) {
+                console.error('Error loading scans:', error);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/users');
+                const users = await response.json();
+                const tbody = document.getElementById('users-body');
+                tbody.innerHTML = '';
+                
+                users.forEach(user => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${user.name}</td>
+                        <td>${user.rfid_tag}</td>
+                        <td>${user.access_level}</td>
+                        <td>${user.active ? 'Ja' : 'Nein'}</td>
+                        <td>${new Date(user.created_at).toLocaleString('de-DE')}</td>
+                    `;
+                });
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStats();
+            loadScans();
+            loadUsers();
+            
+            // Refresh data every 30 seconds
+            setInterval(() => {
+                loadStats();
+                loadScans();
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

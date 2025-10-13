@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Lehrer Dashboard{% endblock %}
+
+{% block content %}
+<h2>Lehrer Dashboard</h2>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Klassen</h5>
+            </div>
+            <div class="card-body">
+                {% for class in classes %}
+                <button class="btn btn-outline-primary mb-2 w-100" onclick="loadClassData('{{ class.class_name }}')">
+                    {{ class.class_name }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 id="class-title">Wählen Sie eine Klasse</h5>
+            </div>
+            <div class="card-body">
+                <div id="class-content">
+                    <p>Bitte wählen Sie eine Klasse aus der Liste links.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h5>Letzte Scans (alle Klassen)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Zeit</th>
+                        <th>Name</th>
+                        <th>Klasse</th>
+                        <th>RFID Tag</th>
+                        <th>Scan #</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scan in recent_scans %}
+                    <tr>
+                        <td>{{ scan.timestamp.strftime('%d.%m.%Y %H:%M') }}</td>
+                        <td>
+                            {% if scan.firstname %}
+                                {{ scan.firstname }} {{ scan.lastname }}
+                            {% else %}
+                                <em>Unbekannt</em>
+                            {% endif %}
+                        </td>
+                        <td>{{ scan.class_name or '-' }}</td>
+                        <td>{{ scan.rfid_tag }}</td>
+                        <td>{{ scan.scan_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadClassData(className) {
+    document.getElementById('class-title').textContent = 'Klasse: ' + className;
+    document.getElementById('class-content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    
+    try {
+        const response = await fetch(`/api/class_data/${className}`);
+        const data = await response.json();
+        
+        let html = '<h6>Schüler:</h6>';
+        html += '<div class="row">';
+        data.students.forEach(student => {
+            const deviceStatus = student.rfid_tag ? 
+                `<span class="badge bg-success">Gerät registriert</span>` : 
+                `<span class="badge bg-warning">Kein Gerät</span>`;
+            
+            html += `
+                <div class="col-md-6 mb-2">
+                    <div class="card">
+                        <div class="card-body py-2">
+                            <strong>${student.firstname} ${student.lastname}</strong><br>
+                            <small>${student.email}</small><br>
+                            ${deviceStatus}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        html += '<h6 class="mt-4">Anwesenheit:</h6>';
+        html += '<div class="table-responsive">';
+        html += '<table class="table table-sm table-striped">';
+        html += '<thead><tr><th>Zeit</th><th>Name</th><th>Scan #</th></tr></thead><tbody>';
+        
+        data.attendance.forEach(scan => {
+            html += `
+                <tr>
+                    <td>${new Date(scan.timestamp).toLocaleString('de-DE')}</td>
+                    <td>${scan.firstname} ${scan.lastname}</td>
+                    <td>${scan.scan_count}</td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        
+        document.getElementById('class-content').innerHTML = html;
+    } catch (error) {
+        document.getElementById('class-content').innerHTML = '<div class="alert alert-danger">Fehler beim Laden der Klassendaten</div>';
+    }
+}
+</script>
+{% endblock %}

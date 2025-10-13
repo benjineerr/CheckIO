@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Registrierung{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4>Schüler-Account registrieren</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Benutzername</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">E-Mail</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="firstname" class="form-label">Vorname</label>
+                                <input type="text" class="form-control" id="firstname" name="firstname" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="lastname" class="form-label">Nachname</label>
+                                <input type="text" class="form-control" id="lastname" name="lastname" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="class_name" class="form-label">Klasse</label>
+                        <select class="form-select" id="class_name" name="class_name" required>
+                            <option value="">Bitte wählen...</option>
+                            <option value="IT-1A">IT-1A</option>
+                            <option value="IT-1B">IT-1B</option>
+                            <option value="IT-2A">IT-2A</option>
+                            <option value="IT-2B">IT-2B</option>
+                            <option value="IT-3A">IT-3A</option>
+                            <option value="IT-3B">IT-3B</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Account erstellen</button>
+                </form>
+                
+                <div class="alert alert-info mt-3">
+                    <strong>Hinweis:</strong> Ihr Standard-Passwort ist <code>test1234</code>. 
+                    Nach der Registrierung werden Sie zur Geräte-Registrierung weitergeleitet.
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('login') }}">Bereits registriert? Hier anmelden</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

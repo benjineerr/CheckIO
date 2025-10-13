@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Schüler Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Mein Profil</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ student.firstname }} {{ student.lastname }}</p>
+                <p><strong>Klasse:</strong> {{ student.class_name }}</p>
+                <p><strong>Email:</strong> {{ student.email }}</p>
+                <p><strong>RFID-Gerät:</strong> 
+                    {% if student.rfid_tag %}
+                        <span class="badge bg-success">Registriert</span><br>
+                        <small>{{ student.rfid_tag }}</small>
+                    {% else %}
+                        <span class="badge bg-warning">Nicht registriert</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        {% if not student.rfid_tag %}
+        <div class="card">
+            <div class="card-header">
+                <h5>Gerät registrieren</h5>
+            </div>
+            <div class="card-body">
+                <p>Sie haben noch kein RFID-Gerät registriert.</p>
+                <a href="{{ url_for('device_registration', student_id=student.id) }}" class="btn btn-primary">
+                    Gerät registrieren
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Meine Anwesenheitszeiten</h5>
+            </div>
+            <div class="card-body">
+                {% if scans %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Datum</th>
+                                <th>Zeit</th>
+                                <th>Scan #</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for scan in scans %}
+                            <tr>
+                                <td>{{ scan.timestamp.strftime('%d.%m.%Y') }}</td>
+                                <td>{{ scan.timestamp.strftime('%H:%M:%S') }}</td>
+                                <td>
+                                    <span class="badge bg-primary">{{ scan.scan_count }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    {% if student.rfid_tag %}
+                        Noch keine Scans vorhanden.
+                    {% else %}
+                        Registrieren Sie zuerst ein RFID-Gerät, um Ihre Anwesenheitszeiten zu sehen.
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
