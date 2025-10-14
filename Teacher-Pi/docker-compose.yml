@@ -1,9 +1,9 @@
 version: "3"
 
 services:
-  app:
-    build: ./app
-    container_name: python_app
+  dbuplink:
+    build: ./dbuplink
+    container_name: db_uplink
     depends_on:
       - db
       - mqtt
@@ -16,7 +16,7 @@ services:
       MQTT_PORT: 1883
       MQTT_TOPIC: rfid/scans
     volumes:
-      - ./app:/app
+      - ./dbuplink:/app
     command: ["python", "-u", "main.py"]
 
   webserver:
@@ -47,7 +47,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./init-db:/docker-entrypoint-initdb.d
+      - ./webserver/init-db:/docker-entrypoint-initdb.d
 
   mqtt:
     image: eclipse-mosquitto:2

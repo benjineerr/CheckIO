@@ -156,7 +156,7 @@ A simple RFID-based attendance system for schools with real-time tracking, web d
 `docker exec -it mqtt_broker mosquitto_pub -h localhost -t rfid/scans -m '{"temperature": 23.1, "humidity": 41}'`
 
 # Check pyhon-log
-`docker logs -f python_app`
+`docker logs -f db_uplink`
 
 # Check DB-entys
 `docker exec -it mysql_db mysql -uuser -ppassword testdb -e "SELECT * FROM rfid_scans;"`
