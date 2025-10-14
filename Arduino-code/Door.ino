@@ -1,7 +1,6 @@
 #include <SPI.h>
 #include <MFRC522.h>
-#include <ArduinoJson.h>
-#include <LiquidCrystal.h>        // LCD-Bibliothek hinzugefügt
+#include <LiquidCrystal.h>
 
 /* ---------- Pin-Definitionen ---------- */
 // RFID Setup
@@ -55,14 +54,8 @@ void loop() {
     // Backend-kompatibles Format: "RFID" + UID
     String rfidTag = "RFID" + uid;
     
-    // Minimales JSON nur für Door-Pi Python Script
-    StaticJsonDocument<100> doc;
-    doc["rfid_tag"] = rfidTag;
-    doc["timestamp"] = millis();
-    
-    // Send JSON to serial
-    serializeJson(doc, Serial);
-    Serial.println();
+    // Sende nur den clean RFID-Tag (kein JSON, kein Timestamp)
+    Serial.println(rfidTag);
     
     /* ----- LCD-Feedback ----- */
     displayCardDetected(rfidTag);

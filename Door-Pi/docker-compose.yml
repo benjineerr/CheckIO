@@ -3,8 +3,6 @@ services:
     build: ./app
     container_name: door_node
     restart: unless-stopped
-    
-    # Privileged Mode für Hardware-Zugriff (einfachste Lösung)
     privileged: true
     
     volumes:
@@ -13,12 +11,5 @@ services:
     devices:
       - "/dev/ttyACM0:/dev/ttyACM0"
       
-    networks:
-      - rfid_network
-      
     environment:
       - PYTHONUNBUFFERED=1
-      
-networks:
-  rfid_network:
-    driver: bridge
