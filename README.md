@@ -19,7 +19,6 @@ A simple RFID-based attendance system for schools with real-time tracking, web d
 - Raspberry Pi 4b (4GB)
 - Arduino Uno R3
 - 16x2 LCD Display (16-pin standard)
-- 4-digit 7-segment display
 - 2 Push buttons
 - Breadboard and jumper wires
 
