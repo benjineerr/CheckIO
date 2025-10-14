@@ -23,6 +23,7 @@ services:
   dbdownlink:
     build: ./dbdownlink
     container_name: db_downlink
+    privileged: true
     depends_on:
       - db
     environment:
@@ -30,8 +31,13 @@ services:
       MYSQL_USER: user
       MYSQL_PASSWORD: password
       MYSQL_DATABASE: testdb
+      SERIAL_PORT: COM5
+      SERIAL_BAUDRATE: 115200
+      PYTHONUNBUFFERED: 1
     volumes:
       - ./dbdownlink:/app
+    devices:
+      - "COM5:/dev/ttyACM0"
     command: ["python", "-u", "main.py"]
 
 

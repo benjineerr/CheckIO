@@ -20,7 +20,7 @@ String serialBuffer = ""; // Puffer für eingehende serielle Daten
 // Setup-Funktion
 void setup() {
   lcd.begin(16, 2);
-  Serial.begin(9600); // Serielle Kommunikation starten
+  Serial.begin(115200); // Serielle Kommunikation starten
   
   pinMode(buttonPinWeiter, INPUT_PULLUP);
   pinMode(buttonPinZurueck, INPUT_PULLUP);

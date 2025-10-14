@@ -5,12 +5,14 @@ import mysql.connector
 import time
 
 # --- Konfiguration ---
-MYSQL_HOST = "localhost"
-MYSQL_USER = "root"
-MYSQL_PASS = "rootpassword"
-MYSQL_DB = "students"
-SERIAL_PORT = "/dev/ttyACM0"  # Passe dies an!
-SERIAL_BAUDRATE = 115200
+import os
+
+MYSQL_HOST = os.environ.get('MYSQL_HOST', 'localhost')
+MYSQL_USER = os.environ.get('MYSQL_USER', 'user')
+MYSQL_PASS = os.environ.get('MYSQL_PASSWORD', 'password')
+MYSQL_DB = os.environ.get('MYSQL_DATABASE', 'testdb')
+SERIAL_PORT = os.environ.get('SERIAL_PORT', 'COM5')
+SERIAL_BAUDRATE = int(os.environ.get('SERIAL_BAUDRATE', '115200'))
 
 def get_data_from_db():
     """Holt die Namen aus der Datenbank und formatiert sie."""
@@ -24,7 +26,7 @@ def get_data_from_db():
         cursor = db.cursor()
         
         # Annahme: Deine Tabelle heißt 'students' und die Spalte 'name'
-        cursor.execute("SELECT name FROM students ORDER BY name ASC")
+        cursor.execute("SELECT username, active FROM students ORDER BY username ASC")
         
         # Alle Ergebnisse als Liste von Tupeln holen, z.B. [('Anna',), ('Ben',)]
         results = cursor.fetchall()
