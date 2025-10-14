@@ -114,30 +114,35 @@ def main():
         while True:
             if ser.in_waiting > 0:
                 try:
-                    # RFID Data lesen
-                    rfid_data = ser.readline().decode('utf-8').strip()
+                    # JSON Data vom Arduino lesen
+                    line = ser.readline().decode('utf-8').strip()
                     
-                    if rfid_data:
-                        timestamp = datetime.now().isoformat()
+                    if line and line.startswith('{') and line.endswith('}'):
+                        # Parse JSON vom Arduino
+                        arduino_data = json.loads(line)
                         
-                        # MQTT Message erstellen
-                        message = {
-                            "device_id": DEVICE_ID,
-                            "rfid_uid": rfid_data,
-                            "timestamp": timestamp,
-                            "location": "door"
-                        }
+                        if 'rfid_tag' in arduino_data:
+                            # MQTT Message für Backend erstellen
+                            message = {
+                                "rfid_tag": arduino_data['rfid_tag'],
+                                "timestamp": datetime.now().isoformat(),
+                                "device_id": DEVICE_ID,
+                                "location": "door"
+                            }
+                            
+                            # Als JSON an MQTT senden
+                            json_message = json.dumps(message)
+                            result = client.publish(MQTT_TOPIC, json_message)
+                            
+                            print(f"[INFO] RFID scan: {arduino_data['rfid_tag']} -> MQTT")
                         
-                        # Als JSON senden
-                        json_message = json.dumps(message)
-                        result = client.publish(MQTT_TOPIC, json_message)
-                        
-                        print(f"[INFO] RFID scan: {rfid_data} -> sent to {MQTT_TOPIC}")
-                        
+                except json.JSONDecodeError as e:
+                    # Falls es kein gültiges JSON ist, ignorieren (könnte Debug-Output sein)
+                    pass
                 except UnicodeDecodeError as e:
-                    print(f"[ERROR] Failed to decode serial data: {e}")
+                    logger.error(f"Failed to decode serial data: {e}")
                 except Exception as e:
-                    print(f"[ERROR] Error processing RFID data: {e}")
+                    logger.error(f"Error processing RFID data: {e}")
             
             time.sleep(0.1)  # Kurze Pause
             
