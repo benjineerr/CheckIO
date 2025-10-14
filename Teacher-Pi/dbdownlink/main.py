@@ -9,8 +9,8 @@ MYSQL_HOST = "localhost"
 MYSQL_USER = "root"
 MYSQL_PASS = "rootpassword"
 MYSQL_DB = "students"
-#SERIAL_PORT = "/dev/ttyACM0"  # Passe dies an!
-SERIAL_BAUDRATE = 9600
+SERIAL_PORT = "/dev/ttyACM0"  # Passe dies an!
+SERIAL_BAUDRATE = 115200
 
 def get_data_from_db():
     """Holt die Namen aus der Datenbank und formatiert sie."""
