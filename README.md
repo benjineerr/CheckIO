@@ -153,7 +153,7 @@ A simple RFID-based attendance system for schools with real-time tracking, web d
     ```
 
 # Testing the mqtt-connection
-`docker exec -it mqtt_broker mosquitto_pub -h localhost -t rfid/scans -m '{"temperature": 23.1, "humidity": 41}'`
+`docker exec -it mqtt_broker mosquitto_pub -h localhost -t rfid/scans -m '{"rfid_tag": "[1728000166] 8B:58:C0:25:91:A2", "timestamp": "2025-10-14T15:52:15.523171"}'`
 
 # Check pyhon-log
 `docker logs -f db_uplink`
