@@ -19,6 +19,22 @@ services:
       - ./dbuplink:/app
     command: ["python", "-u", "main.py"]
 
+
+  dbdownlink:
+    build: ./dbdownlink
+    container_name: db_downlink
+    depends_on:
+      - db
+    environment:
+      MYSQL_HOST: db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: testdb
+    volumes:
+      - ./dbdownlink:/app
+    command: ["python", "-u", "main.py"]
+
+
   webserver:
     build: ./webserver
     container_name: web_interface
