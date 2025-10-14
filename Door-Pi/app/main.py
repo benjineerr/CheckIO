@@ -20,16 +20,18 @@ def load_config():
     config = configparser.ConfigParser()
     config_file = '/app/config/main.conf'
     
-    # Defaults
+    # Defaults (Schule: Teacher-Pi Access Point)
     config.read_dict({
         'serial': {'port': '/dev/ttyACM0', 'baud': '115200'},
-        'mqtt': {'broker': '192.168.178.114', 'port': '1883', 'topic': 'rfid/scans'},
+        'mqtt': {'broker': '192.168.4.1', 'port': '1883', 'topic': 'rfid/scans'},
         'device': {'id': 'door_node_001'}
     })
     
     if os.path.exists(config_file):
         config.read(config_file)
         logger.info(f"✅ Config loaded: {config_file}")
+    else:
+        logger.warning(f"⚠️  Config not found, using defaults (School AP: 192.168.4.1)")
     
     return config
 
@@ -61,6 +63,7 @@ client.on_connect = on_connect
 def main():
     # MQTT verbinden
     try:
+        logger.error(f"🔌 Connecting to MQTT at {MQTT_BROKER}:{MQTT_PORT}...")
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
         client.loop_start()
     except Exception as e:
