@@ -6,10 +6,10 @@ import time
 
 # --- Konfiguration ---
 MYSQL_HOST = "localhost"
-MYSQL_USER = "dein_benutzer"
-MYSQL_PASS = "dein_passwort"
-MYSQL_DB = "deine_datenbank"
-SERIAL_PORT = "/dev/ttyACM0"  # Passe dies an!
+MYSQL_USER = "root"
+MYSQL_PASS = "rootpassword"
+MYSQL_DB = "students"
+#SERIAL_PORT = "/dev/ttyACM0"  # Passe dies an!
 SERIAL_BAUDRATE = 9600
 
 def get_data_from_db():
