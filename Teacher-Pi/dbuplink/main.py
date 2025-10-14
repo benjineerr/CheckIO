@@ -3,6 +3,7 @@ import time
 import json
 import mysql.connector
 import paho.mqtt.client as mqtt
+from datetime import datetime
 
 # === Configuration from environment variables ===
 MYSQL_CONFIG = {
@@ -53,17 +54,44 @@ def on_message(client, userdata, msg):
     try:
         payload_str = msg.payload.decode()
         print(f"Message received on '{msg.topic}': {payload_str}")
+        
         try:
             data = json.loads(payload_str)
         except json.JSONDecodeError:
-            data = {"raw": payload_str}
+            print("Invalid JSON format")
+            return
+
+        # Extrahiere Felder aus der Message
+        rfid_tag = data.get("rfid_tag")
+        timestamp_str = data.get("timestamp")
+
+        if not rfid_tag or not timestamp_str:
+            print("Missing required fields in message")
+            return
+
+        # Timestamp in datetime umwandeln
+        try:
+            timestamp = datetime.fromisoformat(timestamp_str)
+        except ValueError:
+            print("Invalid timestamp format")
+            return
+
+        # Zusätzliche Felder vorbereiten (hier als Beispiel mit NULL/defaults)
+        scan_count = None
+        location = None
+        status = None
+        created_at = datetime.now()
 
         cursor.execute(
-            "INSERT INTO rfid_scans (topic, payload) VALUES (%s, %s)",
-            (msg.topic, json.dumps(data)),
+            """
+            INSERT INTO rfid_scans (rfid_tag, timestamp, scan_count, location, status, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (rfid_tag, timestamp, scan_count, location, status, created_at)
         )
         db.commit()
         print("Record successfully saved to MySQL.")
+
     except Exception as e:
         print(f"Error processing message: {e}")
 
