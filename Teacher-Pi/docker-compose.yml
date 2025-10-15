@@ -31,7 +31,7 @@ services:
       MYSQL_USER: user
       MYSQL_PASSWORD: password
       MYSQL_DATABASE: testdb
-      SERIAL_PORT: COM5
+      SERIAL_PORT: /dev/ttyACM0
       SERIAL_BAUDRATE: 115200
       PYTHONUNBUFFERED: 1
     volumes:
