@@ -11,7 +11,7 @@ MYSQL_HOST = os.environ.get('MYSQL_HOST', 'localhost')
 MYSQL_USER = os.environ.get('MYSQL_USER', 'user')
 MYSQL_PASS = os.environ.get('MYSQL_PASSWORD', 'password')
 MYSQL_DB = os.environ.get('MYSQL_DATABASE', 'testdb')
-SERIAL_PORT = os.environ.get('SERIAL_PORT', 'COM5')
+SERIAL_PORT = os.environ.get('SERIAL_PORT', 'compose_port')
 SERIAL_BAUDRATE = int(os.environ.get('SERIAL_BAUDRATE', '115200'))
 
 def get_data_from_db():

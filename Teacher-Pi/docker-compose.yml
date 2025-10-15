@@ -37,7 +37,7 @@ services:
     volumes:
       - ./dbdownlink:/app
     devices:
-      - "COM5:/dev/ttyACM0"
+      - "/dev/ttyACM0:compose_port"
     command: ["python", "-u", "main.py"]
 
 
